@@ -1,0 +1,44 @@
+{
+  "name": "pi-last-model-effort",
+  "version": "0.1.0",
+  "description": "Remember the last thinking effort used by each model in Pi.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Specode",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/specode/pi-last-model-effort.git"
+  },
+  "homepage": "https://github.com/specode/pi-last-model-effort#readme",
+  "bugs": {
+    "url": "https://github.com/specode/pi-last-model-effort/issues"
+  },
+  "keywords": [
+    "pi-package",
+    "pi-coding-agent",
+    "thinking",
+    "reasoning",
+    "model"
+  ],
+  "files": [
+    "src",
+    "README.md",
+    "README.zh-CN.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node --test test/*.test.ts",
+    "smoke": "pi --no-extensions --offline -e . --list-models"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "pi": {
+    "extensions": [
+      "./src/index.ts"
+    ]
+  }
+}
