@@ -23,16 +23,22 @@ Different models often work best at different reasoning levels. Pi can configure
 
 ## Installation
 
-Install directly from GitHub:
+Install from npm:
 
 ```bash
-pi install git:github.com/specode/pi-last-model-effort
+pi install npm:@specode/pi-last-model-effort
 ```
 
 Try it for one run without installing:
 
 ```bash
-pi -e git:github.com/specode/pi-last-model-effort
+pi -e npm:@specode/pi-last-model-effort
+```
+
+You can also install directly from GitHub:
+
+```bash
+pi install git:github.com/specode/pi-last-model-effort
 ```
 
 Restart Pi after installation. No configuration is required.

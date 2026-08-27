@@ -23,16 +23,22 @@
 
 ## 安装
 
-直接从 GitHub 安装：
+从 npm 安装：
 
 ```bash
-pi install git:github.com/specode/pi-last-model-effort
+pi install npm:@specode/pi-last-model-effort
 ```
 
 也可以不安装，只临时试用一次：
 
 ```bash
-pi -e git:github.com/specode/pi-last-model-effort
+pi -e npm:@specode/pi-last-model-effort
+```
+
+也可以直接从 GitHub 安装：
+
+```bash
+pi install git:github.com/specode/pi-last-model-effort
 ```
 
 安装后重启 Pi，无需额外配置。

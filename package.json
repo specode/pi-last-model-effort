@@ -1,5 +1,5 @@
 {
-  "name": "pi-last-model-effort",
+  "name": "@specode/pi-last-model-effort",
   "version": "0.1.0",
   "description": "Remember the last thinking effort used by each model in Pi.",
   "type": "module",
