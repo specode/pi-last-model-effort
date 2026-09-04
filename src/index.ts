@@ -1,5 +1,6 @@
 import { join, resolve } from "node:path";
 import {
+	buildSessionContext,
 	getAgentDir,
 	parseArgs,
 	type ExtensionAPI,
@@ -232,7 +233,10 @@ export default function lastModelEffort(pi: ExtensionAPI): void {
 			args.session !== undefined ||
 			args.fork !== undefined;
 		const hasConversation =
-			ctx.sessionManager.buildSessionContext().messages.length > 0;
+			buildSessionContext(
+				ctx.sessionManager.getEntries(),
+				ctx.sessionManager.getLeafId(),
+			).messages.length > 0;
 
 		if (
 			!saved ||
