@@ -1,25 +1,21 @@
 # pi-last-model-effort
 
-[简体中文](./README.zh-CN.md)
+[English](./README.md) | [简体中文](./README.zh-CN.md)
 
-A small [Pi](https://github.com/earendil-works/pi-mono) extension that remembers the most recently used thinking/reasoning effort for each model and restores it when you switch back.
+Automatically remember and restore your preferred thinking/reasoning effort for each model in [Pi](https://github.com/earendil-works/pi-mono) — so switching models never forces you to readjust the thinking level by hand.
 
-## Why
+- **Per-model memory** — tracks the last effective thinking effort independently for every `provider/model` pair.
+- **Seamless session startup** — restores your most recently used model and its remembered effort when opening a fresh `pi` session or running `/new`.
+- **Non-intrusive precedence** — respects resumed sessions (`pi -c`, `/resume`), CLI flags (`--model`, `--thinking`), and pinned scoped-model settings.
+- **Zero configuration** — install once and use Pi's normal model and thinking selectors as usual.
 
-Different models often work best at different reasoning levels. Pi can configure defaults, but switching among several models still means repeatedly adjusting the thinking level. This extension turns the last effective level used by each model into a lightweight, cross-session preference.
+---
 
-## Features
+## Requirements
 
-- Remembers thinking effort independently for each `provider/model` pair.
-- Restores the remembered effort when returning to a model.
-- Restores the most recently selected model in a fresh Pi session.
-- Preserves the target session's model and effort for `pi -c`, `/resume`, fork, clone, and reload flows.
-- Respects explicit `--model`, `--provider`, and `--thinking` CLI options.
-- Respects `enabledModels`, `--models`, and effort values pinned by scoped model entries.
-- Uses Pi's native `setThinkingLevel()` behavior, so unsupported levels are safely clamped to the model's capabilities.
-- Supports concurrent Pi processes with locked, merged, and atomic state updates.
-- Works in TUI, RPC, JSON, and print modes.
-- Ignores Pi processes marked with `PI_SUBAGENT_CHILD=1`, preventing fixed subagent effort levels from changing the main-session preference.
+- [Pi](https://github.com/earendil-works/pi-mono) installed (verified with Pi `>= 0.84.3`, compatible across TUI, RPC, JSON, and print modes)
+
+---
 
 ## Installation
 
@@ -29,60 +25,73 @@ Install from npm:
 pi install npm:@specode/pi-last-model-effort
 ```
 
-Try it for one run without installing:
-
-```bash
-pi -e npm:@specode/pi-last-model-effort
-```
-
-You can also install directly from GitHub:
+Or install from GitHub:
 
 ```bash
 pi install git:github.com/specode/pi-last-model-effort
 ```
 
-Restart Pi after installation. No configuration is required.
+Try it for a single session without installing:
 
-## Behavior
+```bash
+pi -e npm:@specode/pi-last-model-effort
+```
 
-| Situation | Behavior |
+Restart Pi after installation. No configuration is needed.
+
+---
+
+## Quick Start
+
+Once installed, the extension works automatically in the background:
+
+1. Select Model A and change its thinking effort (e.g. `high`).
+2. Switch to Model B and set a different thinking effort (e.g. `low`).
+3. Switch back to Model A — its thinking effort automatically returns to `high`.
+4. Open a brand-new `pi` terminal — it starts on your last active model and effort level.
+
+---
+
+## How It Works & Design
+
+### Precedence & Session Rules
+
+To avoid overriding intentional user choices or historical session state, the extension follows strict precedence rules:
+
+| Scenario | Behavior |
 | --- | --- |
-| Fresh `pi` session or `/new` | Restores the most recently selected model and its remembered effort |
-| Switch or cycle models | Restores the target model's remembered effort |
-| `pi -c`, `/resume`, fork, clone, reload | Keeps the session's own model and effort |
-| Explicit CLI model or effort | CLI selection takes precedence |
-| Scoped model with a pinned effort | Scoped effort takes precedence |
-| Model unavailable or authentication missing | Keeps Pi's current selection and reports a warning |
+| **Fresh `pi` session or `/new`** | Restores the most recently selected model and its remembered effort |
+| **Switch or cycle models in-session** | Restores the target model's remembered effort |
+| **`pi -c`, `/resume`, fork, clone, `/reload`** | Preserves the target session's own model and effort |
+| **Explicit CLI flags (`--model`, `--provider`, `--thinking`)** | CLI flags always take precedence |
+| **Scoped model (`--models` / `enabledModels`) with pinned effort** | Pinned effort takes precedence |
+| **Model unavailable or missing credentials** | Keeps Pi's current selection and shows a warning |
 
-The effective level after Pi clamps it to the model's capabilities becomes the new remembered value.
+### Capability Clamping & Subagent Isolation
 
-## State
+- **Native capability clamping**: Restoring effort calls Pi's native `setThinkingLevel()`, so unsupported levels are safely clamped to what the target model supports, and the resulting effective level becomes the new remembered preference.
+- **Subagent isolation**: Processes spawned with `PI_SUBAGENT_CHILD=1` are ignored so fixed subagent reasoning levels never overwrite your main session preferences.
+- **Multi-process concurrency**: State updates use file locking, timestamp-based merging, and atomic file replacement so running multiple Pi terminals simultaneously never corrupts state.
 
-State is stored outside your settings and session files:
+### State Storage
+
+Preferences are stored in a standalone state file (without modifying your `settings.json`, `modelThinkingLevels`, or session transcripts):
 
 ```text
 ~/.pi/agent/state/last-model-effort.json
 ```
 
-The location follows Pi's configured agent directory. Set `PI_LAST_MODEL_EFFORT_STATE` to override the exact file path, mainly for testing or isolated environments.
+The path follows Pi's configured agent directory. For testing or isolated environments, set `PI_LAST_MODEL_EFFORT_STATE` to override the file path. The extension makes zero network requests.
 
-The extension does not modify Pi's `modelThinkingLevels` setting and does not make network requests.
-
-## Compatibility
-
-The extension uses Pi's public extension APIs and has been verified with Pi 0.84.3. It declares `@earendil-works/pi-coding-agent` as a peer dependency, as recommended for Pi packages.
+---
 
 ## Development
 
-Run the tests:
-
 ```bash
+# Run unit tests
 npm test
-```
 
-Verify that Pi can load the extension:
-
-```bash
+# Verify extension loading in Pi
 npm run smoke
 ```
 

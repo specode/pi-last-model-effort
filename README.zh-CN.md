@@ -1,25 +1,21 @@
 # pi-last-model-effort
 
-[English](./README.md)
+[English](./README.md) | [简体中文](./README.zh-CN.md)
 
-一个小型 [Pi](https://github.com/earendil-works/pi-mono) 扩展：按模型记住最近实际使用的 thinking / reasoning effort，并在切换回来时自动恢复。
+为 [Pi](https://github.com/earendil-works/pi-mono) 自动记住每个模型上次使用的推理档位（thinking / reasoning effort）——在不同模型间来回切换或开启新会话时，无需再每次手动重调。
 
-## 为什么需要它
+- **按模型独立记忆**：为每个 `provider/model` 独立保存最近一次实际生效的推理档位。
+- **新会话自动恢复**：打开全新的 `pi` 终端或执行 `/new` 时，自动恢复到上次使用的模型及对应档位。
+- **不干扰显式指定**：完整保留历史会话恢复（`pi -c`、`/resume`）、命令行参数（`--model`、`--thinking`）及 scoped model 的固定档位优先级。
+- **零配置即装即用**：安装后完全无感运行，无需修改任何配置文件。
 
-不同模型通常适合不同的推理档位。Pi 可以配置默认值，但在多个模型之间切换时，仍可能需要反复调整 thinking level。这个扩展会把每个模型最近实际使用的档位保存为轻量、跨会话的偏好。
+---
 
-## 功能
+## 前置依赖
 
-- 按 `provider/model` 独立记忆 thinking effort。
-- 切换回某个模型时恢复其最近档位。
-- 在全新的 Pi 会话中恢复最近选择的模型。
-- `pi -c`、`/resume`、fork、clone 和 reload 保留目标会话自己的模型与 effort。
-- 尊重显式 `--model`、`--provider` 和 `--thinking` 命令行参数。
-- 尊重 `enabledModels`、`--models` 以及 scoped model 条目固定的 effort。
-- 通过 Pi 原生 `setThinkingLevel()` 恢复，因此不支持的档位会按照模型能力安全收敛。
-- 使用文件锁、按时间戳合并和原子替换，支持多个 Pi 进程并发运行。
-- 支持 TUI、RPC、JSON 和 print 模式。
-- 忽略带有 `PI_SUBAGENT_CHILD=1` 标记的 Pi 进程，避免子 Agent 的固定 effort 污染主会话偏好。
+- 已安装 [Pi](https://github.com/earendil-works/pi-mono)（已在 Pi `>= 0.84.3` 验证，支持 TUI、RPC、JSON 与 print 模式）
+
+---
 
 ## 安装
 
@@ -29,60 +25,73 @@
 pi install npm:@specode/pi-last-model-effort
 ```
 
-也可以不安装，只临时试用一次：
-
-```bash
-pi -e npm:@specode/pi-last-model-effort
-```
-
-也可以直接从 GitHub 安装：
+或从 GitHub 安装：
 
 ```bash
 pi install git:github.com/specode/pi-last-model-effort
 ```
 
-安装后重启 Pi，无需额外配置。
+单次免安装体验：
 
-## 行为
+```bash
+pi -e npm:@specode/pi-last-model-effort
+```
+
+安装完成后重启 Pi 即可生效，无需任何额外配置。
+
+---
+
+## 快速开始
+
+安装后按平时习惯切换模型与推理档位即可：
+
+1. 选择模型 A，将其推理档位调为 `high`。
+2. 切换到模型 B，将档位调为 `low`。
+3. 再次切回模型 A —— 推理档位会自动恢复为 `high`。
+4. 新开一个终端运行 `pi` —— 自动沿用你最后一次使用的模型与档位。
+
+---
+
+## 工作原理与设计思路
+
+### 触发场景与优先级规则
+
+不同模型往往适合不同的推理强度，但盲目覆盖又会打乱用户的临时指定或历史会话恢复。为此，插件设计了明确的优先级边界：
 
 | 场景 | 行为 |
 | --- | --- |
-| 全新的 `pi` 会话或 `/new` | 恢复最近模型及其已记忆 effort |
-| 切换或循环选择模型 | 恢复目标模型最近使用的 effort |
-| `pi -c`、`/resume`、fork、clone、reload | 保留目标会话自己的模型和 effort |
-| 显式指定 CLI 模型或 effort | 命令行选择优先 |
-| scoped model 固定了 effort | scoped effort 优先 |
-| 模型不可用或缺少认证 | 保留 Pi 当前选择并显示警告 |
+| **全新 `pi` 会话或 `/new`** | 恢复最近一次选择的模型及其记忆的推理档位 |
+| **会话中切换或循环选择模型** | 自动恢复目标模型上次使用的推理档位 |
+| **`pi -c`、`/resume`、fork、clone、`/reload`** | 保持目标历史会话原有的模型与档位不变 |
+| **命令行显式传参（`--model`、`--provider`、`--thinking`）** | 命令行参数优先 |
+| **Scoped model（`--models` / `enabledModels`）固定了档位** | 固定的 scoped 档位优先 |
+| **目标模型不可用或未登录凭据** | 保持 Pi 当前选择并给出警告提示 |
 
-Pi 根据模型能力收敛后的实际档位，会成为该模型新的记忆值。
+### 能力收敛、子进程隔离与并发安全
 
-## 状态文件
+- **原生档位安全收敛**：通过调用 Pi 原生的 `setThinkingLevel()` 恢复档位；若某档位超出模型支持范围，会由 Pi 自动收敛到模型支持的有效档位，并将收敛后的结果作为新的记忆值。
+- **子 Agent 进程隔离**：自动忽略带有 `PI_SUBAGENT_CHILD=1` 环境变量的子进程，防止子 Agent 的固定推理档位污染主会话偏好。
+- **多终端并发安全**：状态写入采用文件锁、时间戳对比合并与原子文件替换，同时打开多个 Pi 终端也不会互相覆盖或损坏状态。
 
-状态独立于 Pi 设置和会话文件保存：
+### 状态存储位置
+
+偏好数据独立保存在以下状态文件中，不会污染你的 `settings.json`、`modelThinkingLevels` 配置或会话记录，也不会发起任何网络请求：
 
 ```text
 ~/.pi/agent/state/last-model-effort.json
 ```
 
-实际位置会跟随 Pi 配置的 agent 目录。可通过 `PI_LAST_MODEL_EFFORT_STATE` 覆盖完整文件路径，主要用于测试或隔离环境。
+存储目录自动跟随 Pi 配置的 Agent 目录。在测试或隔离环境中，可通过环境变量 `PI_LAST_MODEL_EFFORT_STATE` 指定自定义文件路径。
 
-扩展不会修改 Pi 的 `modelThinkingLevels` 设置，也不会发起网络请求。
+---
 
-## 兼容性
-
-扩展仅使用 Pi 的公开扩展 API，并已在 Pi 0.84.3 上验证。按照 Pi package 的建议，`@earendil-works/pi-coding-agent` 被声明为 peer dependency。
-
-## 开发
-
-运行测试：
+## 本地开发
 
 ```bash
+# 运行单元测试
 npm test
-```
 
-验证 Pi 能够加载扩展：
-
-```bash
+# 验证 Pi 能够正常加载扩展
 npm run smoke
 ```
 
