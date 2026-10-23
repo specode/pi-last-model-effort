@@ -13,7 +13,7 @@ Automatically remember and restore your preferred thinking/reasoning effort for 
 
 ## Requirements
 
-- [Pi](https://github.com/earendil-works/pi-mono) installed (verified with Pi `>= 0.84.3`, compatible across TUI, RPC, JSON, and print modes)
+- [Pi](https://github.com/earendil-works/pi-mono) with `ExtensionContext.mode` support (verified with Pi `1.4.0`). The extension runs only in TUI mode; RPC, JSON, print, and unknown modes are ignored.
 
 ---
 
@@ -60,7 +60,8 @@ To avoid overriding intentional user choices or historical session state, the ex
 
 | Scenario | Behavior |
 | --- | --- |
-| **Fresh `pi` session or `/new`** | Restores the most recently selected model and its remembered effort |
+| **Non-TUI mode (RPC, JSON, print)** | Does not read, restore, or write preferences |
+| **Fresh TUI `pi` session or `/new`** | Restores the most recently selected model and its remembered effort |
 | **Switch or cycle models in-session** | Restores the target model's remembered effort |
 | **`pi -c`, `/resume`, fork, clone, `/reload`** | Preserves the target session's own model and effort |
 | **Explicit CLI flags (`--model`, `--provider`, `--thinking`)** | CLI flags always take precedence |
@@ -70,6 +71,7 @@ To avoid overriding intentional user choices or historical session state, the ex
 ### Capability Clamping & Subagent Isolation
 
 - **Native capability clamping**: Restoring effort calls Pi's native `setThinkingLevel()`, so unsupported levels are safely clamped to what the target model supports, and the resulting effective level becomes the new remembered preference.
+- **TUI-only operation**: All lifecycle handlers require `ctx.mode === "tui"`. Non-interactive processes do not participate in preference memory, even without a subagent marker.
 - **Subagent isolation**: Processes spawned with `PI_SUBAGENT_CHILD=1` are ignored so fixed subagent reasoning levels never overwrite your main session preferences.
 - **Multi-process concurrency**: State updates use file locking, timestamp-based merging, and atomic file replacement so running multiple Pi terminals simultaneously never corrupts state.
 

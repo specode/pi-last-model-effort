@@ -224,6 +224,7 @@ export default function lastModelEffort(pi: ExtensionAPI): void {
 	}
 
 	pi.on("session_start", async (event, ctx) => {
+		if (ctx.mode !== "tui") return;
 		thinkingObservations.setActiveModel(ctx.model);
 		const saved = await refreshState();
 		const args = parseArgs(process.argv.slice(2));
@@ -267,6 +268,7 @@ export default function lastModelEffort(pi: ExtensionAPI): void {
 	});
 
 	pi.on("model_select", async (event, ctx) => {
+		if (ctx.mode !== "tui") return;
 		await thinkingObservations.beforeModelSelect(event.previousModel);
 		thinkingObservations.setActiveModel(event.model);
 		if (restoreThinkingEvents.isRestoring) return;
@@ -294,11 +296,13 @@ export default function lastModelEffort(pi: ExtensionAPI): void {
 	});
 
 	pi.on("thinking_level_select", (event, ctx) => {
+		if (ctx.mode !== "tui") return;
 		if (restoreThinkingEvents.shouldSuppressThinkingEvent()) return;
 		thinkingObservations.observe(ctx.model, event.level);
 	});
 
-	pi.on("session_shutdown", async () => {
+	pi.on("session_shutdown", async (_event, ctx) => {
+		if (ctx.mode !== "tui") return;
 		await thinkingObservations.flush();
 		await writeQueue;
 	});

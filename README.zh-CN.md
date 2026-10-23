@@ -13,7 +13,7 @@
 
 ## 前置依赖
 
-- 已安装 [Pi](https://github.com/earendil-works/pi-mono)（已在 Pi `>= 0.84.3` 验证，支持 TUI、RPC、JSON 与 print 模式）
+- 已安装支持 `ExtensionContext.mode` 的 [Pi](https://github.com/earendil-works/pi-mono)（已在 Pi `1.4.0` 验证）。插件仅在 TUI 模式启用，RPC、JSON、print 及未知模式均跳过。
 
 ---
 
@@ -60,7 +60,8 @@ pi -e npm:@specode/pi-last-model-effort
 
 | 场景 | 行为 |
 | --- | --- |
-| **全新 `pi` 会话或 `/new`** | 恢复最近一次选择的模型及其记忆的推理档位 |
+| **非 TUI 模式（RPC、JSON、print）** | 不读取、恢复或写入偏好 |
+| **全新 TUI `pi` 会话或 `/new`** | 恢复最近一次选择的模型及其记忆的推理档位 |
 | **会话中切换或循环选择模型** | 自动恢复目标模型上次使用的推理档位 |
 | **`pi -c`、`/resume`、fork、clone、`/reload`** | 保持目标历史会话原有的模型与档位不变 |
 | **命令行显式传参（`--model`、`--provider`、`--thinking`）** | 命令行参数优先 |
@@ -70,6 +71,7 @@ pi -e npm:@specode/pi-last-model-effort
 ### 能力收敛、子进程隔离与并发安全
 
 - **原生档位安全收敛**：通过调用 Pi 原生的 `setThinkingLevel()` 恢复档位；若某档位超出模型支持范围，会由 Pi 自动收敛到模型支持的有效档位，并将收敛后的结果作为新的记忆值。
+- **仅 TUI 模式启用**：所有生命周期处理器均要求 `ctx.mode === "tui"`；非交互进程即使没有子代理标记，也不会参与偏好记忆。
 - **子 Agent 进程隔离**：自动忽略带有 `PI_SUBAGENT_CHILD=1` 环境变量的子进程，防止子 Agent 的固定推理档位污染主会话偏好。
 - **多终端并发安全**：状态写入采用文件锁、时间戳对比合并与原子文件替换，同时打开多个 Pi 终端也不会互相覆盖或损坏状态。
 
