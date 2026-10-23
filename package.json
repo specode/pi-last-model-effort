@@ -1,6 +1,6 @@
 {
   "name": "@specode/pi-last-model-effort",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Remember the last thinking effort used by each model in Pi.",
   "type": "module",
   "license": "MIT",
