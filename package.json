@@ -1,6 +1,6 @@
 {
   "name": "@specode/pi-last-model-effort",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Remember the last thinking effort used by each model in Pi.",
   "type": "module",
   "license": "MIT",
@@ -29,6 +29,7 @@
   ],
   "scripts": {
     "test": "node --test test/*.test.ts",
+    "pack:check": "npm pack --dry-run",
     "smoke": "pi --no-extensions --offline -e . --list-models"
   },
   "peerDependencies": {

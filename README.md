@@ -2,101 +2,77 @@
 
 [English](./README.md) | [简体中文](./README.zh-CN.md)
 
-Automatically remember and restore your preferred thinking/reasoning effort for each model in [Pi](https://github.com/earendil-works/pi-mono) — so switching models never forces you to readjust the thinking level by hand.
-
-- **Per-model memory** — tracks the last effective thinking effort independently for every `provider/model` pair.
-- **Seamless session startup** — restores your most recently used model and its remembered effort when opening a fresh `pi` session or running `/new`.
-- **Non-intrusive precedence** — respects resumed sessions (`pi -c`, `/resume`), CLI flags (`--model`, `--thinking`), and pinned scoped-model settings.
-- **Zero configuration** — install once and use Pi's normal model and thinking selectors as usual.
-
----
-
-## Requirements
-
-- [Pi](https://github.com/earendil-works/pi-mono) with `ExtensionContext.mode` support (verified with Pi `1.4.0`). The extension runs only in TUI mode; RPC, JSON, print, and unknown modes are ignored.
-
----
+A [Pi](https://github.com/earendil-works/pi-mono) extension that remembers the thinking effort you last used for each model and restores the last active model and effort in new TUI sessions.
 
 ## Installation
 
-Install from npm:
+Requires a Pi version that exposes `ExtensionContext.mode` (tested with Pi 1.4.0).
+
+From npm:
 
 ```bash
 pi install npm:@specode/pi-last-model-effort
 ```
 
-Or install from GitHub:
+From GitHub:
 
 ```bash
 pi install git:github.com/specode/pi-last-model-effort
 ```
 
-Try it for a single session without installing:
+From a local directory for development:
 
 ```bash
-pi -e npm:@specode/pi-last-model-effort
+pi install /path/to/pi-last-model-effort
 ```
 
-Restart Pi after installation. No configuration is needed.
+Restart Pi after installing.
 
----
+## Usage
 
-## Quick Start
+No configuration is needed. Once installed:
 
-Once installed, the extension works automatically in the background:
+- Changing the thinking effort on a model saves that level for that `provider/model`.
+- Switching to another model and back restores each model's saved thinking effort.
+- Starting a fresh `pi` TUI session or running `/new` restores the most recently selected model and its saved effort.
+- If a saved effort is outside what the target model supports, Pi clamps it through `setThinkingLevel()` and saves the resulting level.
 
-1. Select Model A and change its thinking effort (e.g. `high`).
-2. Switch to Model B and set a different thinking effort (e.g. `low`).
-3. Switch back to Model A — its thinking effort automatically returns to `high`.
-4. Open a brand-new `pi` terminal — it starts on your last active model and effort level.
-
----
-
-## How It Works & Design
-
-### Precedence & Session Rules
-
-To avoid overriding intentional user choices or historical session state, the extension follows strict precedence rules:
+### Session Precedence
 
 | Scenario | Behavior |
 | --- | --- |
-| **Non-TUI mode (RPC, JSON, print)** | Does not read, restore, or write preferences |
-| **Fresh TUI `pi` session or `/new`** | Restores the most recently selected model and its remembered effort |
-| **Switch or cycle models in-session** | Restores the target model's remembered effort |
-| **`pi -c`, `/resume`, fork, clone, `/reload`** | Preserves the target session's own model and effort |
-| **Explicit CLI flags (`--model`, `--provider`, `--thinking`)** | CLI flags always take precedence |
-| **Scoped model (`--models` / `enabledModels`) with pinned effort** | Pinned effort takes precedence |
-| **Model unavailable or missing credentials** | Keeps Pi's current selection and shows a warning |
+| Fresh TUI `pi` session or `/new` | Restores the last selected model and its saved effort |
+| Switch or cycle models in-session | Restores the saved effort for the selected model |
+| `pi -c`, `/resume`, fork, clone, `/reload` | Keeps the session's existing model and effort |
+| CLI flags (`--model`, `--provider`, `--thinking`, `--models` with `:thinking`) | CLI flags take precedence |
+| Scoped model (`--models` / `enabledModels`) with pinned effort | Pinned effort takes precedence |
+| Non-TUI modes (`rpc`, `json`, `print`) or `PI_SUBAGENT_CHILD=1` | Ignored; does not read, restore, or write state |
+| Saved model unavailable or missing credentials | Keeps Pi's current selection and shows a warning |
 
-### Capability Clamping & Subagent Isolation
+## Configuration
 
-- **Native capability clamping**: Restoring effort calls Pi's native `setThinkingLevel()`, so unsupported levels are safely clamped to what the target model supports, and the resulting effective level becomes the new remembered preference.
-- **TUI-only operation**: All lifecycle handlers require `ctx.mode === "tui"`. Non-interactive processes do not participate in preference memory, even without a subagent marker.
-- **Subagent isolation**: Processes spawned with `PI_SUBAGENT_CHILD=1` are ignored so fixed subagent reasoning levels never overwrite your main session preferences.
-- **Multi-process concurrency**: State updates use file locking, timestamp-based merging, and atomic file replacement so running multiple Pi terminals simultaneously never corrupts state.
+State is stored in `~/.pi/agent/state/last-model-effort.json` (following Pi's agent directory). Set `PI_LAST_MODEL_EFFORT_STATE` to override the state file path in tests or isolated environments.
 
-### State Storage
+## Privacy and Safety
 
-Preferences are stored in a standalone state file (without modifying your `settings.json`, `modelThinkingLevels`, or session transcripts):
-
-```text
-~/.pi/agent/state/last-model-effort.json
-```
-
-The path follows Pi's configured agent directory. For testing or isolated environments, set `PI_LAST_MODEL_EFFORT_STATE` to override the file path. The extension makes zero network requests.
-
----
+- Makes no network requests and reads no credentials.
+- Does not modify `settings.json`, `modelThinkingLevels`, or session files.
+- Runs only when `ctx.mode === "tui"` and ignores `PI_SUBAGENT_CHILD=1` subprocesses so non-interactive or subagent runs never overwrite your preferences.
+- Uses file locking, timestamp merging, and atomic writes (`0600`) so multiple Pi terminals can run at the same time without corrupting state.
 
 ## Development
 
 ```bash
-# Run unit tests
+# Run tests (requires Node.js with native TypeScript support)
 npm test
 
-# Verify extension loading in Pi
-npm run smoke
+# Check package contents
+npm run pack:check
+
+# Load the extension directly in Pi without installing
+pi --no-extensions --offline -e ./src/index.ts --list-models
 ```
 
 ## License
 
-[MIT](./LICENSE)
+[MIT](./LICENSE).
